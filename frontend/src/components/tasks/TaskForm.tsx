@@ -22,8 +22,9 @@ import {
 } from '@/components/ui/dialog';
 
 const taskSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
+  name: z.string().min(1, 'Title is required'),
   description: z.string().min(1, 'Description is required'),
+  status: z.boolean(),
 });
 
 interface TaskFormProps {
@@ -38,19 +39,79 @@ export function TaskForm({ task, open, onOpenChange }: TaskFormProps) {
   const form = useForm<z.infer<typeof taskSchema>>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
-      title: task?.name || '',
+      name: task?.name || '',  // Pre-fill with existing task data
       description: task?.description || '',
+      status: task?.status || false,
     },
   });
 
-  const onSubmit = (values: z.infer<typeof taskSchema>) => {
+  const onSubmit = async (values: z.infer<typeof taskSchema>) => {
     if (task) {
-      updateTask(task.id, { name: values.title, description: values.description });
+      await handleUpdateTask(task.id, {
+        name: values.name,
+        description: values.description,
+        status: values.status,
+      });
     } else {
-      addTask({ name: values.title, description: values.description });
+      await handleAddTask({
+        name: values.name,
+        description: values.description,
+        status: values.status,
+      });
     }
-    onOpenChange(false);
-    form.reset(); // Reset the form after submission
+    onOpenChange(false);  // Close the form after submission
+    form.reset();  // Reset the form after submission
+  };
+
+  const handleAddTask = async ({
+    name,
+    description,
+    status,
+  }: { name: string; description: string; status: boolean }) => {
+    try {
+      const response = await fetch('http://localhost:8000/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name, description, status }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add task');
+      }
+
+      const data = await response.json();
+      console.log('Task added:', data);
+
+      // Add the new task to the task list (without needing to re-fetch)
+      addTask(data.task);
+    } catch (error) {
+      console.error('Error adding task:', error);
+    }
+  };
+
+  const handleUpdateTask = async (
+    taskId: string,
+    { name, description, status }: { name: string; description: string; status: boolean }
+  ) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name, description, status }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+
+      const data = await response.json();
+      console.log('Task updated:', data);
+      updateTask(taskId, data.task); // Update the task list state
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
   };
 
   return (
@@ -63,7 +124,7 @@ export function TaskForm({ task, open, onOpenChange }: TaskFormProps) {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
-              name="title"
+              name="name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Title</FormLabel>

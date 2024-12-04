@@ -37,7 +37,6 @@ export function SignUpForm() {
     },
   });
 
-
   const onSubmit = async (values: z.infer<typeof signUpSchema>) => {
     setLoading(true);
     try {
@@ -54,12 +53,24 @@ export function SignUpForm() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create an account');
+        if (response.status === 409) {
+          toast({
+            title: 'Email already in use',
+            description: 'Please use a different email address.',
+            variant: 'destructive',
+          });
+        } else {
+          throw new Error('Failed to create an account');
+        }
       }
 
       const data = await response.json();
       
-      login({ name: data.name, email: data.email });
+      
+      localStorage.setItem('jwt', data.token);
+
+      
+      login({ name: data.name, email: data.email, token: data.token });
 
       toast({
         title: 'Account created successfully!',
@@ -77,7 +88,6 @@ export function SignUpForm() {
       setLoading(false);
     }
   };
-
 
   return (
     <Form {...form}>

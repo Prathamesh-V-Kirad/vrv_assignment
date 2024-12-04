@@ -21,15 +21,40 @@ func Register(c *fiber.Ctx) error {
 		return err
 	}
 	
-	password,_ := bcrypt.GenerateFromPassword([]byte(data["password"]),14)
+	password, _ := bcrypt.GenerateFromPassword([]byte(data["password"]), 14)
 	user := models.User{
-		Name : data["name"],
-		Email : data["email"],
+		Name:     data["name"],
+		Email:    data["email"],
 		Password: password,
 	}
-	collection := database.GetCollection("users")
 
-	// Insert the user into the database
+
+	var role models.Role
+	collection := database.GetCollection("roles")
+
+	userCollection := database.GetCollection("users")
+	count, _ := userCollection.CountDocuments(context.Background(), bson.M{})
+	if count == 0 {
+
+		err := collection.FindOne(context.Background(), bson.M{"name": "admin"}).Decode(&role)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Error fetching admin role",
+			})
+		}
+	} else {
+		err := collection.FindOne(context.Background(), bson.M{"name": "user"}).Decode(&role)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Error fetching user role",
+			})
+		}
+	}
+
+	user.RoleID = role.ID
+
+
+	collection = database.GetCollection("users")
 	insertResult, err := collection.InsertOne(context.Background(), user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

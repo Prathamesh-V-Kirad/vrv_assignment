@@ -109,7 +109,7 @@ func GetTasks(c *fiber.Ctx) error {
         return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "You do not have permission to view tasks"})
     }
 
-    // Fetch the tasks from the database
+
     taskCollection := database.GetCollection("tasks")
     cursor, err = taskCollection.Find(context.Background(), bson.M{})
     if err != nil {
@@ -250,7 +250,7 @@ func UpdateTask(c *fiber.Ctx) error {
 	
 	hasPermission := false
 	for _, permission := range permissions {
-		if permission.Name == "update_task_status" { 
+		if permission.Name == "update_task" { 
 			hasPermission = true
 			break
 		}
@@ -274,7 +274,7 @@ func UpdateTask(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update task"})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Task updated successfully"})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Task updated successfully" , "data":update})
 }
 
 func DeleteTask(c *fiber.Ctx) error {

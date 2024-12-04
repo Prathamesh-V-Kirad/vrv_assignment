@@ -1,19 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Task } from '@/types/task';
-import { useTaskStore } from '@/lib/tasks';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import { Pencil, Trash2 } from 'lucide-react';
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface TaskListProps {
   onEdit: (task: Task) => void;
@@ -21,29 +12,25 @@ interface TaskListProps {
 
 export function TaskList({ onEdit }: TaskListProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const { deleteTask } = useTaskStore();
 
   useEffect(() => {
-    // Fetch tasks from the API
     const fetchTasks = async () => {
       try {
         const response = await fetch('http://localhost:8000/api/tasks', {
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
         });
-        if (!response.ok) {
-          throw new Error('Failed to fetch tasks');
-        }
+        if (!response.ok) throw new Error('Failed to fetch tasks');
+
         const data = await response.json();
         const formattedTasks = data.tasks.map((task: any) => ({
           id: task._id,
           name: task.name,
           description: task.description,
-          status: task.status,
+          status: !!task.status,
           createdAt: new Date(task.created_at),
           updatedAt: new Date(task.updated_at),
         }));
-
         setTasks(formattedTasks);
       } catch (error) {
         console.error('Error fetching tasks:', error);
@@ -56,15 +43,13 @@ export function TaskList({ onEdit }: TaskListProps) {
   const handleToggleComplete = async (taskId: string, currentStatus: boolean) => {
     try {
       const response = await fetch(`http://localhost:8000/api/tasks/${taskId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ status: !currentStatus }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to update task status');
-      }
+      if (!response.ok) throw new Error('Failed to update task status');
 
       setTasks((prevTasks) =>
         prevTasks.map((task) =>
@@ -73,6 +58,22 @@ export function TaskList({ onEdit }: TaskListProps) {
       );
     } catch (error) {
       console.error('Error updating task status:', error);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete task');
+
+      setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+    } catch (error) {
+      console.error('Error deleting task:', error);
     }
   };
 
@@ -93,8 +94,8 @@ export function TaskList({ onEdit }: TaskListProps) {
               <TableRow key={task.id}>
                 <TableCell>
                   <Checkbox
-                    checked={task.status}
-                    onCheckedChange={() => handleToggleComplete(task.id, task.status)}
+                    checked={!!task.status}
+                    onCheckedChange={() => handleToggleComplete(task.id, !!task.status)}
                   />
                 </TableCell>
                 <TableCell>
@@ -113,7 +114,7 @@ export function TaskList({ onEdit }: TaskListProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onEdit(task)}
+                      onClick={() => onEdit(task)} // Pass task data to onEdit
                       className="h-8 w-8"
                     >
                       <Pencil className="h-4 w-4" />
@@ -121,8 +122,8 @@ export function TaskList({ onEdit }: TaskListProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => deleteTask(task.id)}
-                      className="h-8 w-8 text-destructive"
+                      onClick={() => handleDeleteTask(task.id)}
+                      className="h-8 w-8 text-destructive hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

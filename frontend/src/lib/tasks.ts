@@ -7,7 +7,7 @@ interface TaskState {
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   toggleComplete: (id: string) => void;
-  syncTasks: (tasks: Task[]) => void; // Use this for initializing fetched tasks
+  syncTasks: (tasks: Task[]) => void;
 }
 
 export const useTaskStore = create<TaskState>((set) => ({
@@ -20,7 +20,7 @@ export const useTaskStore = create<TaskState>((set) => ({
           ...task,
           id: crypto.randomUUID(),
           createdAt: new Date(),
-          status: false, // Default status for new tasks
+          status: false,
         },
       ],
     })),
